@@ -494,8 +494,9 @@ if (LXQ.enabled())
             text = text.replace(regex, '$1');
             //clean up spurious highlighting that come when you select all text and delete...
             regex = /<span style="background-color:.*?>(.*)<\/span>/g;
+            text =  text.replace(regex, '$1');
+            regex =  /<font color="#ff0000">(.*)<\/font>/g;
             return text.replace(regex, '$1');
-            
         }
 
         var highLightText = function (text, results,isSegmentCompleted,showHighlighting,isSource,segment) {
