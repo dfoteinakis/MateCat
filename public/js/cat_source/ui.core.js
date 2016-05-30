@@ -3368,7 +3368,11 @@ UI = {
                     target_val = UI.clearMarks($.trim($(".editarea", segment).html()));
                     console.log('target: '+target_val);
                     target_val = LXQ.cleanUpHighLighting(target_val);
+                     if (callback!=null)
+                        saveSelection();
                     $(".editarea", segment).html(target_val);
+                    if (callback!=null)
+                        restoreSelection();
                     $(".source", segment).html(source_val); 
                     if (callback!=null)
                         callback();                    
