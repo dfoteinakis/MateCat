@@ -3362,14 +3362,16 @@ UI = {
                     //do something else
                     noVisibleErrorsFound = true;                  
                     source_val = UI.clearMarks($.trim($(".source", segment).html()));
-                    console.log('source: '+source_val);
+                    console.log('source1: '+source_val);
                     source_val = LXQ.cleanUpHighLighting(source_val);
                     
-                    target_val = UI.clearMarks($.trim($(".editarea", segment).html()));
-                    console.log('target: '+target_val);
-                    target_val = LXQ.cleanUpHighLighting(target_val);
-                     if (callback!=null)
+                    
+                                        
+                    if (callback!=null)
                         saveSelection();
+                    target_val = UI.clearMarks($.trim($(".editarea", segment).html()));
+                    console.log('target: '+target_val);    
+                    target_val = LXQ.cleanUpHighLighting(target_val);    
                     $(".editarea", segment).html(target_val);
                     if (callback!=null)
                         restoreSelection();
