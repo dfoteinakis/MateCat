@@ -494,8 +494,9 @@ if (LXQ.enabled())
             text = text.replace(regex, '$1');
             //clean up spurious highlighting that come when you select all text and delete...
             regex = /<span style="background-color:.*?>(.*)<\/span>/g;
+            text =  text.replace(regex, '$1');
+            regex = /<font color="#ff0000".*?>(.*)<\/font>/g;
             return text.replace(regex, '$1');
-            
         }
 
         var highLightText = function (text, results,isSegmentCompleted,showHighlighting,isSource,segment) {
@@ -793,55 +794,70 @@ if (LXQ.enabled())
             $.each(sourceHighlihts, function(i, element) {
                var classlist = element.className.split(/\s+/);
                if ($(element).data('errors')!==undefined) {
-               var errorlist = $(element).data('errors').trim().split(/\s+/);
-               var root = $(tpls.lxqTooltipWrap);
-               $.each(classlist, function(j,cl) {
-                   var txt = getWarningForModule(cl,true);
-                   if (cl === 'g3g') { 
-                       //need to modify message with word.
-                       var ind =  Math.floor(j/2); //we aredding the x0 classes after each class..
-                       var word = UI.lexiqaData.lexiqaWarnings[UI.getSegmentId(segment)][errorlist[ind]].msg;
-                       txt = txt.replace('#xxx#',word);
-                   }
-                   if (txt!==null) {
-                       var row = $(tpls.lxqTooltipBody);
-                       row.find('.tooltip-error-category').text(txt);
-                       row.find('.tooltip-error-ignore').on('click', function(e) {
-                           e.preventDefault();
-                           LXQ.ignoreError(errorlist[j]);
-                       });
-                       root.append(row);
-                   }
-               });
-               $(element).data('powertipjq', root);
+                var errorlist = $(element).data('errors').trim().split(/\s+/);
+                var root = $(tpls.lxqTooltipWrap);                
+                $.each(classlist, function(j,cl) {
+                    var txt = getWarningForModule(cl,true);
+                    if (cl === 'g3g') { 
+                        //need to modify message with word.
+                        var ind =  Math.floor(j/2); //we aredding the x0 classes after each class..
+                        var word = UI.lexiqaData.lexiqaWarnings[UI.getSegmentId(segment)][errorlist[ind]].msg;
+                        txt = txt.replace('#xxx#',word);
+                    }
+                    if (txt!==null) {
+                        var row = $(tpls.lxqTooltipBody);
+                        row.find('.tooltip-error-category').text(txt);
+                        row.find('.tooltip-error-ignore').on('click', function(e) {
+                            e.preventDefault();
+                            LXQ.ignoreError(errorlist[j]);
+                        });
+                        root.append(row);
+                    }
+                });                
                }
             });
-            $.each(targetHighlihts, function(i, element) {
-               var classlist = element.className.split(/\s+/);
-               if ($(element).data('errors')!==undefined) { //lxq-invisible elements do not have a data part
-               var errorlist = $(element).data('errors').trim().split(/\s+/);  
-               //console.dir(errorlist);             
-               var root = $(tpls.lxqTooltipWrap);
-               $.each(classlist,function(j,cl) {
-                   var txt = getWarningForModule(cl,false);
-                   if (cl === 'g3g') {
-                       //need to modify message with word.
-                       var ind =  Math.floor(j/2); //we aredding the x0 classes after each class..
-                       var word = UI.lexiqaData.lexiqaWarnings[UI.getSegmentId(segment)][errorlist[ind]].msg;
-                       txt = txt.replace('#xxx#',word);
-                   }
-                   if (txt!==null) {
-                       var row = $(tpls.lxqTooltipBody);
-                       row.find('.tooltip-error-category').text(txt);
-                       row.find('.tooltip-error-ignore').on('click', function(e) {
-                           e.preventDefault();
-                            LXQ.ignoreError(errorlist[j]);
-                       });
-                       root.append(row);
-                   }
-               });
-               $(element).data('powertipjq', root);        
-               }    
+            $.each(targetHighlihts, function (i, element) {
+                var classlist = element.className.split(/\s+/);
+                if ($(element).data('errors') !== undefined) { //lxq-invisible elements do not have a data part
+                    var errorlist = $(element).data('errors').trim().split(/\s+/);  
+                    //console.dir(errorlist);             
+                    var root = $(tpls.lxqTooltipWrap);
+                    var isSpelling = false, spellingRow = null, count = 0, word, ind;
+                    $.each(classlist, function (j, cl) {
+                        isSpelling = false;
+                        var txt = getWarningForModule(cl, false);
+                        if (cl === 'g3g') {
+                            //need to modify message with word.
+                            ind = Math.floor(j / 2); //we aredding the x0 classes after each class..
+                            word = UI.lexiqaData.lexiqaWarnings[UI.getSegmentId(segment)][errorlist[ind]].msg;
+                            txt = txt.replace('#xxx#', word);
+                        }
+                        
+                        if (txt !== null) {
+                            count++;
+                            var row = $(tpls.lxqTooltipBody);
+                            row.find('.tooltip-error-category').text(txt);
+                            row.find('.tooltip-error-ignore').on('click', function (e) {
+                                e.preventDefault();
+                                LXQ.ignoreError(errorlist[j]);
+                            });
+                            if (cl === 'd1g') {//spelling
+                                isSpelling = true;
+                                //element.text has the text
+                                ind =  Math.floor(j/2); //we aredding the x0 classes after each class..
+                                word = UI.lexiqaData.lexiqaWarnings[UI.getSegmentId(segment)][errorlist[ind]].msg;
+                                row.find('.tooltip-error-category').addClass('spelling').data('word',word);
+                                
+                                spellingRow = row;
+                            }
+                            else
+                                root.append(row);   
+                        }
+                    });
+                    if (spellingRow!==null && count == 1 ) //do not show on multiple errors...
+                        root.append(spellingRow)
+                    $(element).data('powertipjq', root);
+                }
             });                     
         }
         var reloadPowertip = function(segment) {
@@ -859,6 +875,33 @@ if (LXQ.enabled())
                     smartPlacement: true,
                     closeDelay: 500
                 });
+                $('.tooltipa',segment).on('powerTipRender', function() {
+                    //var rows = $('#powerTip').find('tooltip-error-category');
+                    if ($(this).hasClass('d1g')) {
+                    // make an ajax request
+                        var word = $('#powerTip').find('.spelling').data('word');
+                        $.ajax({
+                            url: config.lexiqaServer+'/getSuggestions',
+                            data: {
+                                word: word,
+                                lang: config.target_rfc
+                            },
+                            type: 'GET',
+                            success: function(response) {
+                                console.log('spellSuggest for word: '+word +' is: '+ response);
+                                console.log($('#powerTip').html());
+                                //$('#powerTip').html(response);
+                                var txt = getWarningForModule('d1g', false);
+                                $.each(response,function(i,suggest) {
+                                    txt+='</br>'+suggest;
+                                });
+                                $('#powerTip').find('.spelling').html(txt);
+                                //$('#powerTip').find('.spelling').text(response);
+                                //$('.tooltipa',segment).powerTip('reposition');
+                            }
+                        });
+                    }
+                });                
             }
             else {
                 $.powerTip.destroy($('.tooltipas'));
@@ -874,7 +917,34 @@ if (LXQ.enabled())
                     mouseOnToPopup: true,
                     smartPlacement: true,
                     closeDelay: 500
-                });                
+                });    
+                $('.tooltipa').on('powerTipRender', function() {
+                    //var rows = $('#powerTip').find('tooltip-error-category');
+                    if ($(this).hasClass('d1g')) {
+                    // make an ajax request
+                        var word = $(this).text();
+                        $.ajax({
+                            url: config.lexiqaServer+'/getSuggestions',
+                            data: {
+                                word: word,
+                                lang: config.target_rfc
+                            },
+                            type: 'GET',
+                            success: function(response) {
+                                console.log('spellSuggest for word: '+word +' is: '+ response);
+                                console.log($('#powerTip').html());
+                                //$('#powerTip').html(response);
+                                var txt = getWarningForModule('d1g', false);
+                                $.each(response,function(i,suggest) {
+                                    txt+='</br>'+suggest;
+                                });
+                                $('#powerTip').find('.spelling').html(txt);
+                                //$('#powerTip').find('.spelling').text(response);
+                                //$('.tooltipa').powerTip('reposition');
+                            }
+                        });
+                    }
+                });              
             }
         }
             
@@ -1196,7 +1266,8 @@ if (LXQ.enabled())
             getPreviousSegmentWithWarning:getPreviousSegmentWithWarning,
             initPopup: initPopup,
             hidePopUp: hidePopUp,
-            partnerid: partnerid
+            partnerid: partnerid,
+            getWarningForModule: getWarningForModule
         });
 
     })(jQuery, config, window, LXQ);
