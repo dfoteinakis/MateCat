@@ -3532,45 +3532,7 @@ UI = {
                     //console.log('UI.lexiqaData.lexiqaWarnings');
                     //console.dir(UI.lexiqaData.lexiqaWarnings);
                      $('#lexiqabox').attr('class', 'warningbox').attr("title", "Go to lexiQA for QA analysis").find('.numbererror').text(errorCnt);
-                    $('.tooltipa').powerTip({
-                        placement: 'sw',
-                        mouseOnToPopup: true,
-                        smartPlacement: true,
-                        closeDelay: 500
-                    });
-                    $('.tooltipas').powerTip({
-                        placement: 'se',
-                        mouseOnToPopup: true,
-                        smartPlacement: true,
-                        closeDelay: 500
-                    });
-                    $('.tooltipa',segment).on('powerTipRender', function() {
-                        //var rows = $('#powerTip').find('tooltip-error-category');
-                        if ($(this).hasClass('d1g')) {
-                        // make an ajax request
-                            var word = $('#powerTip').find('.spelling').data('word');
-                            $.ajax({
-                                url: config.lexiqaServer+'/getSuggestions',
-                                data: {
-                                    word: word,
-                                    lang: config.target_rfc
-                                },
-                                type: 'GET',
-                                success: function(response) {
-                                    console.log('spellSuggest for word: '+word +' is: '+ response);
-                                    console.log($('#powerTip').html());
-                                    //$('#powerTip').html(response);
-                                    var txt = LXQ.getWarningForModule('d1g', false);
-                                    $.each(response,function(i,suggest) {
-                                        txt+='</br>'+suggest;
-                                    });
-                                    $('#powerTip').find('.spelling').html(txt);
-                                    //$('#powerTip').find('.spelling').text(response);
-                                    //$('.tooltipa',segment).powerTip('reposition');
-                                }
-                            });
-                        }
-                    });
+                     LXQ.reloadPowertip();
                 }
                 else {
                     $('#lexiqabox').attr('class', 'lexnotific').attr("title", "Well done, no errors found!").find('.numbererror').text('');                    
