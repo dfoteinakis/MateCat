@@ -813,6 +813,7 @@ if (LXQ.enabled())
                         });
                         root.append(row);
                     }
+                    $(element).data('powertipjq', root);
                 });                
                }
             });
@@ -876,6 +877,7 @@ if (LXQ.enabled())
                     closeDelay: 500
                 });
                 $('.tooltipa',segment).on('powerTipRender', function() {
+                    console.log('powerTipRender');
                     //var rows = $('#powerTip').find('tooltip-error-category');
                     if ($(this).hasClass('d1g')) {
                     // make an ajax request
@@ -901,7 +903,7 @@ if (LXQ.enabled())
                             }
                         });
                     }
-                });                
+                });               
             }
             else {
                 $.powerTip.destroy($('.tooltipas'));
@@ -919,6 +921,7 @@ if (LXQ.enabled())
                     closeDelay: 500
                 });    
                 $('.tooltipa').on('powerTipRender', function() {
+                    console.log('powerTipRender');
                     //var rows = $('#powerTip').find('tooltip-error-category');
                     if ($(this).hasClass('d1g')) {
                     // make an ajax request

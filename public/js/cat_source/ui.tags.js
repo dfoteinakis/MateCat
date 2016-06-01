@@ -171,7 +171,7 @@ $.extend(UI, {
             var segment = $(this).closest('section');
 			if (LXQ.enabled()) {
             	$.powerTip.destroy($('.tooltipa',segment));
-            	$.powerTip.destroy($('.tooltipas',segment));
+            	//$.powerTip.destroy($('.tooltipas',segment));
             }
             saveSelection();
 
