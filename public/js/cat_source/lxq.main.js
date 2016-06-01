@@ -592,7 +592,7 @@ if (LXQ.enabled())
             //match 4: the </aaa> part
             // *** match 5: means its a short of <xxx yyy zzz> tag
             
-            var findTags=/(##LESSTHAN##(\w+)\s.*?##GREATERTHAN##)|(##LESSTHAN##\/(\w+)##GREATERTHAN##)/g;
+            var findTags=/(##LESSTHAN##(\w+)\s.*?##GREATERTHAN##)|(##LESSTHAN##\/(\w+)##GREATERTHAN##)|(##LESSTHAN##br\/?##GREATERTHAN##)/g;
             var match, tags = [];
             //match 1: the <aaaa asdfafd> part
             //match 2: the aaaa part of match 2
@@ -614,8 +614,14 @@ if (LXQ.enabled())
                             console.log('adding start 2: '+(match.index-1)+' length: '+(match[3].length+1));       
                     }
                     else {
-                        tags.push([match.index, match[3].length,0]);
-                        console.log('adding start 3: '+match.index+' length: '+match[3].length);
+                        if (match[3]!==undefined) {
+                            tags.push([match.index, match[3].length,0]);
+                            console.log('adding start 3: '+match.index+' length: '+match[3].length);
+                        }
+                        else {
+                            tags.push([match.index, match[5].length,0]);
+                            console.log('adding start 5: '+match.index+' length: '+match[5].length);
+                        }
                     }
                 }
             }
