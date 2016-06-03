@@ -896,8 +896,11 @@ article.lxq-commenting-opened .lxq-comment-balloon-outer {
 .g0 {
     text-decoration: underline; 
 }
-.d0 {
+/*.d0 {
     color:  red;
+}*/
+.d0 {
+    border-bottom: 2px red dotted;
 }
 .m {
     background-color:#EA92B8;
