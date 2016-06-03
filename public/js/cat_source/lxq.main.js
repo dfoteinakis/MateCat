@@ -836,9 +836,6 @@ if (LXQ.enabled())
                                     });
                                     $('#powerTip').append(row);
                                 });
-                                //$('#powerTip').find('.spelling').html(txt);
-                                //$('#powerTip').find('.spelling').text(response);
-                                //$('.tooltipa',segment).powerTip('reposition');
                             }
                         });
                     }
@@ -876,13 +873,19 @@ if (LXQ.enabled())
                                 console.log('spellSuggest for word: '+word +' is: '+ response);
                                 console.log($('#powerTip').html());
                                 //$('#powerTip').html(response);
-                                var txt = getWarningForModule('d1g', false);
+                                //var txt = getWarningForModule('d1g', false);
+                                //var root = $(tpls.lxqTooltipWrap);
                                 $.each(response,function(i,suggest) {
-                                    txt+='</br>'+suggest;
+                                    //txt+='</br>'+suggest;
+                                    var row = $(tpls.lxqTooltipSpellcheckBody);
+                                    row.find('.tooltip-error-category').text(suggest);
+                                    row.find('.tooltip-error-category').on('click', function (e) {
+                                        e.preventDefault();
+                                        console.log('AAAAAAASSSSSSSSSSSSSSSSS');
+                                        LXQ.replaceWord(word, suggest,that);
+                                    });
+                                    $('#powerTip').append(row);
                                 });
-                                $('#powerTip').find('.spelling').html(txt);
-                                //$('#powerTip').find('.spelling').text(response);
-                                //$('.tooltipa').powerTip('reposition');
                             }
                         });
                     }
