@@ -1231,6 +1231,7 @@ article.lxq-commenting-opened .lxq-comment-balloon-outer {
 
 .lxq-invisible {
     background-color: transparent;
+    border-bottom: none;
 }
 
 
