@@ -92,83 +92,6 @@ if (LXQ.enabled())
         var initConstants = function () {
             tpls = LXQ.const.tpls;
         }
-
-        var saveSelection, restoreSelection;
-        var endSpaceIndex = -1;
-
-        if (window.getSelection && document.createRange) {
-            saveSelection = function(containerEl) {
-                var range = window.getSelection().getRangeAt(0);
-                var preSelectionRange = range.cloneRange();
-                preSelectionRange.selectNodeContents(containerEl);
-                preSelectionRange.setEnd(range.startContainer, range.startOffset);
-                var start = preSelectionRange.toString().length;
-
-                return {
-                    start: start,
-                    end: start + range.toString().length
-                }
-            };
-
-            restoreSelection = function(containerEl, savedSel) {
-                var charIndex = 0, range = document.createRange();
-                range.setStart(containerEl, 0);
-                range.collapse(true);
-                var nodeStack = [containerEl], node, foundStart = false, stop = false;
-
-                while (!stop && (node = nodeStack.pop())) {
-                    if (node.nodeType == 3) {
-                        var nextCharIndex = charIndex + node.length;
-                        if (!foundStart && savedSel.start >= charIndex && savedSel.start <= nextCharIndex) {
-                            range.setStart(node, savedSel.start - charIndex);
-                            foundStart = true;
-                        }
-                        if (foundStart && savedSel.end >= charIndex && savedSel.end <= nextCharIndex) {
-                            range.setEnd(node, savedSel.end - charIndex);
-                            stop = true;
-                        }
-                        charIndex = nextCharIndex;
-                    } else {
-                        var i = node.childNodes.length;
-                        while (i--) {
-                            nodeStack.push(node.childNodes[i]);
-                        }
-                    }
-                }
-
-                var sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
-        } else if (document.selection) {
-            saveSelection = function(containerEl) {
-                var selectedTextRange = document.selection.createRange();
-                var preSelectionTextRange = document.body.createTextRange();
-                preSelectionTextRange.moveToElementText(containerEl);
-                preSelectionTextRange.setEndPoint("EndToStart", selectedTextRange);
-                var start = preSelectionTextRange.text.length;
-
-                return {
-                    start: start,
-                    end: start + selectedTextRange.text.length
-                }
-            };
-
-            restoreSelection = function(containerEl, savedSel) {
-                var textRange = document.body.createTextRange();
-                textRange.moveToElementText(containerEl);
-                textRange.collapse(true);
-                textRange.moveEnd("character", savedSel.end);
-                textRange.moveStart("character", savedSel.start);
-                textRange.select();
-            };
-        }
-
-
-        var nl2br = function (str, is_xhtml) {
-            var breakTag = (is_xhtml || typeof is_xhtml === 'undefined') ? '<br />' : '<br>';
-            return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + breakTag + '$2');
-        }
         
         var renderHistoryWithErrors = function () {
             var root = $(tpls.historyHasErrors);
@@ -888,6 +811,7 @@ if (LXQ.enabled())
                     if ($(this).hasClass('d1g')) {
                     // make an ajax request
                         var word = $('#powerTip').find('.spelling').data('word');
+                        var that = this;
                         $.ajax({
                             url: config.lexiqaServer+'/getSuggestions',
                             data: {
@@ -899,11 +823,20 @@ if (LXQ.enabled())
                                 console.log('spellSuggest for word: '+word +' is: '+ response);
                                 console.log($('#powerTip').html());
                                 //$('#powerTip').html(response);
-                                var txt = getWarningForModule('d1g', false);
+                                //var txt = getWarningForModule('d1g', false);
+                                //var root = $(tpls.lxqTooltipWrap);
                                 $.each(response,function(i,suggest) {
-                                    txt+='</br>'+suggest;
+                                    //txt+='</br>'+suggest;
+                                    var row = $(tpls.lxqTooltipSpellcheckBody);
+                                    row.find('.tooltip-error-category').text(suggest);
+                                    row.find('.tooltip-error-category').on('click', function (e) {
+                                        e.preventDefault();
+                                        console.log('AAAAAAASSSSSSSSSSSSSSSSS');
+                                        LXQ.replaceWord(word, suggest,that);
+                                    });
+                                    $('#powerTip').append(row);
                                 });
-                                $('#powerTip').find('.spelling').html(txt);
+                                //$('#powerTip').find('.spelling').html(txt);
                                 //$('#powerTip').find('.spelling').text(response);
                                 //$('.tooltipa',segment).powerTip('reposition');
                             }
@@ -956,7 +889,53 @@ if (LXQ.enabled())
                 });              
             }
         }
-            
+        
+        var replaceWord  = function(word, suggest,target) {
+            console.log('word:',word,'suggest:',suggest);
+            if ($(target).closest('.editarea').attr('contenteditable')) {
+                if ($(target).text() === word) {
+                    //there is no overlaping errors (like caps after punct...)
+                }
+                else {
+                    //there is an overlap. lets try to find everything manually..
+                    var txt = $(target).text(),$el;
+                    var startInWord = word.indexOf(txt);
+                    var missingCharsStart=word.slice(0,startInWord);
+                    var endInWord = startInWord+txt.length;
+                    var missingCharsEnd = word.slice(endInWord);
+                    console.log('startP:',startInWord,'misStrt:',missingCharsStart,'endP:',endInWord,'misEnd:',missingCharsEnd);
+                    while(missingCharsStart.length>0) {
+                        $el = $(target).prev('lxqwarning');
+                        txt = $el.text();
+                        startInWord = missingCharsStart.indexOf(txt);
+                        if (startInWord<0)
+                            break;
+                        missingCharsStart = missingCharsStart.slice(0,startInWord);
+                        $el.remove();
+                    } 
+                    while(missingCharsEnd.length>0) {
+                        $el = $(target).next('lxqwarning');
+                        txt = $el.text();
+                        startInWord = missingCharsEnd.indexOf(txt);
+                        if (startInWord!==0) {
+                            console.log('oops')
+                            break;
+                        }
+                        missingCharsEnd = missingCharsEnd.slice(txt.length);
+                        $el.remove();
+                    } 
+                }
+                $.powerTip.hide();
+                saveSelection();
+                $(target).text(suggest);
+                restoreSelection();
+                $(target).addClass('lxq-invisible');
+                UI.saveInUndoStack('lxq-replaceWord');
+                UI.currentSegmentQA();
+            }
+            else
+                console.log('will not replace in inactive editarea');
+        }    
         var ignoreError = function(errorid) {
             var splits = errorid.split(/_/g);          
             var targetSeg = splits[1];
@@ -1260,9 +1239,6 @@ if (LXQ.enabled())
             colors: colors,
             toogleHighlightInSegment: toogleHighlightInSegment,
             toogleHighlighting:toogleHighlighting,
-            saveSelection: saveSelection,
-            restoreSelection: restoreSelection,
-            endSpaceIndex: endSpaceIndex,
             shouldHighlighWarningsForSegment: shouldHighlighWarningsForSegment,
             getVisibleWarningsCountForSegment:getVisibleWarningsCountForSegment,
             getIgnoredWarningsCountForSegment:getIgnoredWarningsCountForSegment,
@@ -1276,7 +1252,8 @@ if (LXQ.enabled())
             initPopup: initPopup,
             hidePopUp: hidePopUp,
             partnerid: partnerid,
-            getWarningForModule: getWarningForModule
+            getWarningForModule: getWarningForModule,
+            replaceWord: replaceWord
         });
 
     })(jQuery, config, window, LXQ);
