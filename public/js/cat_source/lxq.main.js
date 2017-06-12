@@ -83,7 +83,7 @@ LXQ.init  = function () {
               licenseKey: config.lxq_license,
               partnerId: config.lxq_partnerid,
               lxqServer: config.lexiqaServer,
-              projectId: config.id_job+'-'+config.password
+              projectId: config.id_job
           }
       );
     }
@@ -1277,7 +1277,7 @@ LXQ.init  = function () {
             initPopup: initPopup,
             hidePopUp: hidePopUp,
             partnerid: partnerid,
-            projectid: config.id_job+'-'+config.password,
+            projectid: config.id_job,
             getWarningForModule: getWarningForModule,
             replaceWord: replaceWord
         });
