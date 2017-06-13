@@ -92,24 +92,24 @@ LXQ.init  = function () {
     */
     $(document).on('getWarning:local:success', function(e, data) {
       console.log('[LEXIQA] got getWarning:local:success');
-        var segment = data.segment;
-        //new API?
-        if (data.segment.raw) {
-          segment = data.segment.raw
-        }
-        var translation = $(UI.targetContainerSelector(), segment ).text().replace(/\uFEFF/g,'');
-        var id_segment = UI.getSegmentId(segment);
-        LXQ.doLexiQA(segment, translation, id_segment,false, function () {}) ;
+      if (LXQ.lexiqaData.lexiqaProjectStatus !== 'loaded')
+        return;
+      var segment = data.segment;
+      //new API?
+      if (data.segment.raw) {
+        segment = data.segment.raw
+      }
+      var translation = $(UI.targetContainerSelector(), segment ).text().replace(/\uFEFF/g,'');
+      var id_segment = UI.getSegmentId(segment);
+      LXQ.doLexiQA(segment, translation, id_segment,false, function () {}) ;
     });
     /* Invoked when page loads */
     $(document).on('getWarning:global:success', function(e, data) {
       if ( globalReceived ) {
           return ;
       }
-
-      LXQ.getLexiqaWarnings(function() {
-        globalReceived = true;
-      });
+      globalReceived = true;
+      LXQ.getLexiqaProjectStatus(LXQ.projectStatusCallback);
     });
     /* invoked when segment is completed (translated clicked)*/
     $(document).on('setTranslation:success', function(e, data) {
@@ -1377,7 +1377,12 @@ LXQ.init  = function () {
                                         highlights.source[qadata.category].push( qadata );
                                     }
                                     else {
+                                      try {
                                         highlights.target[qadata.category].push( qadata );
+                                      }
+                                      catch (e) {
+                                        console.log('ex');
+                                      }
                                     }
                                 }
                             } );
@@ -1436,6 +1441,91 @@ LXQ.init  = function () {
         lxqRemoveSegmentFromWarningList: function ( id_segment ) {
             LXQ.removeSegmentWarning(id_segment);
         },
+        createProject: function () {
+          $.ajax({
+            type: 'POST',
+            url: config.lexiqaServer + '/matecat/'+LXQ.lexiqaData.lexiqaProjectId+'/create?token='+$.lexiqaAuthenticator.getToken(),
+            data: {
+              matecatUrl: window.location.href,
+              sourceLocale: config.source_rfc,
+              targetLocale: config.target_rfc
+            },
+            cache: false,
+            success: function (result, textStatus, jqXHR) {
+              if (jqXHR.status === 202) {
+                console.log('lexiqa project pending');
+                LXQ.lexiqaData.lexiqaProjectStatus = 'pending';
+              }
+              else {
+                console.log('lexiqa project should not see this');
+              }
+            },
+            error: function (jqXHR, textStatus) {
+                console.log('project creation failed',LXQ.lexiqaData.lexiqaProjectId,', with status:',jqXHR.status);
+                LXQ.lexiqaData.lexiqaProjectStatus = 'failed';
+            }
+          });
+        },
+        projectStatusCallback: function (callback) {
+          if (LXQ.lexiqaData.lexiqaProjectStatus === 'failed') {
+            console.log('lexiqa project failed, do nothing');
+          }
+          else if (LXQ.lexiqaData.lexiqaProjectStatus === 'pending') {
+            console.log('lexiqa project pedning, check back in 2sec');
+            setTimeout(function() {
+              LXQ.getLexiqaProjectStatus(LXQ.projectStatusCallback);
+            }, 2000);
+          }
+          else if (LXQ.lexiqaData.lexiqaProjectStatus === 'notfound') {
+            console.log('lexiqa project not found, lets create');
+            LXQ.createProject();
+            setTimeout(function() {
+              LXQ.getLexiqaProjectStatus(LXQ.projectStatusCallback);
+            }, 3000);
+          }
+          else {
+            console.log('lexiqa project found/created, load the erors');
+            LXQ.getLexiqaWarnings(function() {
+                console.log('lexiqa Warnings loaded');
+                LXQ.lexiqaData.lexiqaProjectStatus = 'loaded';
+            });
+          }
+        },
+        getLexiqaProjectStatus: function (callback) {
+          if ( !LXQ.enabled() ) {
+            if (callback) callback();
+            return;
+          }
+          LXQ.lexiqaData.lexiqaFetching = true;
+          LXQ.lexiqaData.lexiqaProjectId = LXQ.partnerid + '-' + config.id_job;
+          LXQ.lexiqaData.lexiqaProjectStatus = 'pending';
+          $.ajax({
+            type: 'GET',
+            url: config.lexiqaServer + '/matecat/'+LXQ.lexiqaData.lexiqaProjectId+'/status?token='+$.lexiqaAuthenticator.getToken(),
+            cache: false,
+            success: function (result, textStatus, jqXHR) {
+              if (jqXHR.status === 202) {
+                console.log('lexiqa project pending');
+              }
+              else {
+                console.log('lexiqa project created');
+                LXQ.lexiqaData.lexiqaProjectStatus = 'created';
+              }
+              callback();
+            },
+            error: function (jqXHR, textStatus) {
+              if (jqXHR.status === 404) {
+                console.log('lexiqa project not found',LXQ.lexiqaData.lexiqaProjectId,',lets create it');
+                LXQ.lexiqaData.lexiqaProjectStatus = 'notfound';
+              }
+              else {
+                console.log('project creation failed',LXQ.lexiqaData.lexiqaProjectId,',stop');
+                LXQ.lexiqaData.lexiqaProjectStatus = 'failed';
+              }
+              callback();
+            }
+          });
+        },
         getLexiqaWarnings: function (callback) {
             if ( !LXQ.enabled() ) {
               if (callback) callback();
@@ -1446,7 +1536,7 @@ LXQ.init  = function () {
             $.ajax( {
                 type: "GET",
                 url: config.lexiqaServer + "/matecaterrors",
-                data: {id: LXQ.partnerid + '-' + config.id_job + '-' + config.password},
+                data: {id: LXQ.partnerid + '-' + config.id_job},
                 cache: false,
                 success: function ( results ) {
                     var errorCnt = 0, ind;
