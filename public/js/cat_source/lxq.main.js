@@ -105,6 +105,7 @@ LXQ.init  = function () {
     });
     /* Invoked when page loads */
     $(document).on('getWarning:global:success', function(e, data) {
+      console.log('--- lexiqa global received!!!');
       if ( globalReceived ) {
           return ;
       }
@@ -1485,10 +1486,11 @@ LXQ.init  = function () {
           }
           else {
             console.log('lexiqa project found/created, load the erors');
-            LXQ.getLexiqaWarnings(function() {
-                console.log('lexiqa Warnings loaded');
-                LXQ.lexiqaData.lexiqaProjectStatus = 'loaded';
-            });
+            if (LXQ.lexiqaData.lexiqaProjectStatus !== 'loaded')
+              LXQ.getLexiqaWarnings(function() {
+                  console.log('lexiqa Warnings loaded');
+                  LXQ.lexiqaData.lexiqaProjectStatus = 'loaded';
+              });
           }
         },
         getLexiqaProjectStatus: function (callback) {
