@@ -1522,12 +1522,14 @@ UI = {
     },
 
     saveSegment: function(segment) {
-		this.setTranslation({
-            id_segment: this.getSegmentId(segment),
-            status: this.getStatusForAutoSave( segment ) ,
-            caller: 'autosave'
-        });
-		segment.addClass('saved');
+      if (segment) {
+        this.setTranslation({
+                id_segment: this.getSegmentId(segment),
+                status: this.getStatusForAutoSave( segment ) ,
+                caller: 'autosave'
+            });
+        segment.addClass('saved');
+      }
 	},
 
 	renderAndScrollToSegment: function(sid) {
