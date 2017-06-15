@@ -119,6 +119,27 @@ LXQ.init  = function () {
         var translation = $(UI.targetContainerSelector(), segment ).text().replace(/\uFEFF/g,'');
         LXQ.doLexiQA(segment,translation,UI.getSegmentId(segment),true,null);
     });
+    $( window ).on( 'files:appended', function ( e , data) {
+      globalReceived = false ;
+      console.log('[LEXIQA] got files:appended ');
+      $.each(data.data, function (id,file) {
+        if (file.segments && LXQ.hasOwnProperty('lexiqaData') && LXQ.lexiqaData.hasOwnProperty('lexiqaWarnings')) {
+          $.each(file.segments, function (i,segment) {
+                if (LXQ.lexiqaData.lexiqaWarnings.hasOwnProperty(segment.sid)) {
+                    console.log('in loadmore segments, segment: '+segment.sid+' already has qa info...');
+                    //clean up and redo powertip on any glossaries/blacklists
+                    var _segment = UI.getSegmentById(segment.sid)
+                    QaCheckGlossary.enabled() && QaCheckGlossary.destroyPowertip(_segment);
+                    QaCheckBlacklist.enabled() && QaCheckBlacklist.destroyPowertip($( UI.targetContainerSelector(), _segment ));
+                    LXQ.redoHighlighting(segment.sid,true);
+                    LXQ.redoHighlighting(segment.sid,false);
+                    QaCheckBlacklist.enabled() && QaCheckBlacklist.reloadPowertip($( UI.targetContainerSelector(), _segment ));
+                    QaCheckGlossary.enabled() && QaCheckGlossary.redoBindEvents(_segment);
+                }
+          });
+        }
+      });
+    });
     /* invoked when more segments are loaded...*/
     $( window ).on( 'segmentsAdded', function ( e , data) {
         globalReceived = false ;
@@ -811,7 +832,7 @@ LXQ.init  = function () {
                     closeDelay: 500
                 });
                 $('.tooltipa',segment).on('powerTipRender', function() {
-                    console.log('powerTipRender');
+                    //console.log('powerTipRender');
                     //var rows = $('#powerTip').find('tooltip-error-category');
                     var that = this;
                     if ($('#powerTip').find('.lxq-suggestion').length) {
@@ -1498,6 +1519,10 @@ LXQ.init  = function () {
             if (callback) callback();
             return;
           }
+          if (LXQ.lexiqaData.lexiqaProjectStatus === 'loaded') {
+            if (callback) callback();
+            return;
+          }
           LXQ.lexiqaData.lexiqaFetching = true;
           LXQ.lexiqaData.lexiqaProjectId = LXQ.partnerid + '-' + config.id_job;
           LXQ.lexiqaData.lexiqaProjectStatus = 'pending';
@@ -1545,7 +1570,7 @@ LXQ.init  = function () {
                     if ( results.errors != 0 ) {
                         //only do something if there are errors in lexiqa server
                         LXQ.lexiqaData.lexiqaWarnings = {};
-
+                        LXQ.lexiqaData.segments = [];
                         results.segments.forEach( function ( element ) {
                             if ( element.errornum === 0 ) {
                                 return;
@@ -1629,10 +1654,10 @@ LXQ.init  = function () {
                         results.qaurl = "#";
                     }
 
-                    if ( LXQ.enabled() ) {
-                        LXQ.doQAallSegments();
-                        //LXQ.refreshElements();
-                    }
+                    // if ( LXQ.enabled() ) {
+                    //     LXQ.doQAallSegments();
+                    //     //LXQ.refreshElements();
+                    // }
                     //$('.lxq-history-balloon-header-link').attr('href', results.qaurl);
                     LXQ.lexiqaData.lexiqaFetching = false;
                     if (callback) callback();

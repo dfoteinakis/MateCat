@@ -1395,24 +1395,12 @@ UI = {
 					$('#file-' + fid).append(newFile);
 				}
 			}
-            // if (LXQ.enabled())
-            // $.each(this.segments,function(i,seg) {
-            // if (!starting)
-            // if (LXQ.hasOwnProperty('lexiqaData') && LXQ.lexiqaData.hasOwnProperty('lexiqaWarnings') &&
-            //     LXQ.lexiqaData.lexiqaWarnings.hasOwnProperty(seg.sid)) {
-            //         console.log('in loadmore segments, segment: '+seg.sid+' already has qa info...');
-            //         //FOTDDD
-            //         LXQ.redoHighlighting(seg.sid,true);
-            //         LXQ.redoHighlighting(seg.sid,false);
-            //     }
-            // });
 		});
 
-        $(document).trigger('files:appended');
+        $(document).trigger('files:appended', {data: files});
 
 		if (starting) {
 			this.init();
-            // LXQ.getLexiqaWarnings();
 		}
 
 	},
