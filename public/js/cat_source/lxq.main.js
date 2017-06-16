@@ -1244,7 +1244,7 @@ LXQ.init  = function () {
             });
 
             $('#lexiqa-quide-link').attr('href', config.lexiqaServer + '/documentation.html');
-            $('#lexiqa-report-link').attr('href', config.lexiqaServer + '/errorreport?id='+this.partnerid+'-' + config.id_job + '-' + config.password+'&type='+(config.isReview?'revise':'translate'));
+            $('#lexiqa-report-link').attr('href', config.lexiqaServer + '/errorreport?id='+this.partnerid+'-' + config.id_job +'&type='+(config.isReview?'revise':'translate'));
 
             // $('#lexiqa-prev-seg').on('click', function (e) {
             //     e.preventDefault();
