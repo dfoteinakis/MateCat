@@ -157,9 +157,21 @@ abstract class BaseKleinViewController extends AbstractStatefulKleinController i
         }
 
         $parsedHost = parse_url(AppConfig::$HTTPHOST);
-        $this->view->{'x_self_ajax_location_hosts'} = AppConfig::$ENABLE_MULTI_DOMAIN_API && is_array($parsedHost) && isset($parsedHost['host'])
+        $ajaxHosts = AppConfig::$ENABLE_MULTI_DOMAIN_API && is_array($parsedHost) && isset($parsedHost['host'])
             ? " *.ajax." . $parsedHost['host']
-            : null;
+            : "";
+
+        // Allow the configured LexiQA server (LXQ_SERVER) as a default-src/connect-src
+        // origin so a self-hosted or local LexiQA (e.g. http://localhost:8181) is not
+        // blocked by CSP. Production *.lexiqa.net is already covered by the static policy.
+        $lxqParsed = parse_url((string)AppConfig::$LXQ_SERVER);
+        $lxqOrigin = "";
+        if (is_array($lxqParsed) && isset($lxqParsed['scheme'], $lxqParsed['host'])) {
+            $lxqOrigin = " " . $lxqParsed['scheme'] . "://" . $lxqParsed['host']
+                . (isset($lxqParsed['port']) ? ":" . $lxqParsed['port'] : "");
+        }
+
+        $this->view->{'x_self_ajax_location_hosts'} = ($ajaxHosts . $lxqOrigin) ?: null;
 
         $this->addParamsToView($params);
         $this->view->setOutputMode(PHPTAL::HTML5);
