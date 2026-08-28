@@ -1,0 +1,138 @@
+name: matecat-local
+
+# Local development stack for the MateCat fork.
+# Secrets (RapidAPI key, LexiQA licence) live in docker-local/.env (gitignored).
+# Bring up:  cd docker-local && docker compose up --build
+# App:       http://localhost:8080     ActiveMQ console: http://localhost:8161 (admin/admin)
+# LexiQA:    run ../lexiqa_new on :8181 (see README) — the browser calls it directly.
+
+services:
+  db:
+    image: mysql:8.0
+    command:
+      - --sql-mode=NO_AUTO_VALUE_ON_ZERO
+      - --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: matecat
+      MYSQL_USER: matecat_user
+      MYSQL_PASSWORD: matecat_user
+    volumes:
+      # matecat.sql drops+creates the `matecat` DB itself; grants to matecat_user survive it.
+      - ../INSTALL/matecat.sql:/docker-entrypoint-initdb.d/01-matecat.sql:ro
+      # tables missing from the old base snapshot (see db-init/02-missing-tables.sql)
+      - ./db-init/02-missing-tables.sql:/docker-entrypoint-initdb.d/02-missing-tables.sql:ro
+      - matecat_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+    ports:
+      - "13306:3306"   # host access if you want a SQL client
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "16379:6379"
+
+  amq:
+    # ActiveMQ Classic. Default transportConnectors already expose STOMP (61613)
+    # and WebSocket (61614), which is exactly what PHP and the Node SSE server need.
+    image: apache/activemq-classic:5.18.3
+    ports:
+      - "61613:61613"  # STOMP  (PHP  -> stomp-php)
+      - "61614:61614"  # WS     (Node -> @stomp/stompjs over WebSocket)
+      - "8161:8161"    # web console (admin/admin)
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: matecat-local-app:latest
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+      amq: {condition: service_started}
+    environment:
+      MATECAT_BASE_URL: "http://localhost:8080"
+      SOCKET_BASE_URL: "localhost:7788"
+      FILTERS_RAPIDAPI_KEY: "${FILTERS_RAPIDAPI_KEY}"
+      LXQ_LICENSE: "${LXQ_LICENSE}"
+      LXQ_PARTNERID: "${LXQ_PARTNERID}"
+      LXQ_SERVER: "${LXQ_SERVER}"
+    volumes:
+      - ../:/var/www/html                              # live source (edit on host)
+      - matecat_vendor:/var/www/html/vendor            # container-only (fast, correct arch)
+      - matecat_node_modules:/var/www/html/node_modules
+    ports:
+      - "8080:80"
+
+  worker:
+    image: matecat-local-app:latest                    # reuses the app image
+    depends_on:
+      app: {condition: service_started}
+      db: {condition: service_healthy}
+    entrypoint: ["/usr/local/bin/entrypoint-worker.sh"]
+    environment:
+      MATECAT_HOME: /var/www/html
+    volumes:
+      - ../:/var/www/html
+      - matecat_vendor:/var/www/html/vendor
+    restart: unless-stopped
+
+  sse:
+    image: node:22-bookworm
+    working_dir: /var/www/html/nodejs
+    restart: unless-stopped
+    depends_on:
+      redis: {condition: service_started}
+      amq: {condition: service_started}
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        cat > config.ini <<'INI'
+        [server]
+        version = "v3.5.52"
+        parallelization = 2
+        address = 0.0.0.0
+        port = 7788
+        path = /channel/updates/socket.io
+
+        [redis]
+        host = redis
+        port = 6379
+        db = 14
+
+        [queue]
+        name = /queue/matecat_socket_notifications
+        port = 61614
+        host = amq
+        login = admin
+        passcode = admin
+
+        [log]
+        file = ./log/server-%DATE%.log
+        level = info
+
+        [cors]
+        allowedOrigins[] = *
+        INI
+        mkdir -p log
+        # Shared PHP<->Node auth secret for SSE. Provision it if the app has not yet.
+        [ -f /var/www/html/inc/login_secret.dat ] || head -c 96 /dev/urandom | base64 | tr -d '\n' > /var/www/html/inc/login_secret.dat
+        [ -d node_modules/socket.io ] || npm install
+        node server.js
+    volumes:
+      - ../:/var/www/html
+      - matecat_nodejs_node_modules:/var/www/html/nodejs/node_modules
+    ports:
+      - "7788:7788"
+
+volumes:
+  matecat_db:
+  matecat_vendor:
+  matecat_node_modules:
+  matecat_nodejs_node_modules:
