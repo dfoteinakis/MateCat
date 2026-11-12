@@ -61,6 +61,9 @@ services:
       LXQ_LICENSE: "${LXQ_LICENSE}"
       LXQ_PARTNERID: "${LXQ_PARTNERID}"
       LXQ_SERVER: "${LXQ_SERVER}"
+      LXQ_SERVER_INTERNAL: "${LXQ_SERVER_INTERNAL}"
+      LXQ_API_USER: "${LXQ_API_USER}"
+      LXQ_API_KEY: "${LXQ_API_KEY}"
     volumes:
       - ../:/var/www/html                              # live source (edit on host)
       - matecat_vendor:/var/www/html/vendor            # container-only (fast, correct arch)
